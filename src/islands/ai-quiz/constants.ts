@@ -11,7 +11,7 @@ export const PROMPT_TO_GENERATE_SELECT_QUIZ = `
 
 ユーザーからの文章に書かれていない問題は絶対に生成しないでください。
 
-以下のJSONスキーマに従いなさい。
+以下のJSONスキーマに従ったJSONを出力しなさい。また、出力はトップレベルで配列です。
 ${JSON.stringify(selectQuestion)}
 `.trim()
 

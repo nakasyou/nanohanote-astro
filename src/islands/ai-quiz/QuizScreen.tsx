@@ -1,18 +1,18 @@
 import {
+  For,
+  Show,
   createEffect,
   createMemo,
   createSignal,
-  For,
   onMount,
-  Show,
 } from 'solid-js'
-import { QuizManager, type GeneratedQuiz } from './quiz-manager'
-import type { MargedNoteData } from '../note/components/notes-utils'
-import { QuizDB, type Quizzes } from './storage'
-import type { QuizContent } from './constants'
 import { shuffle } from '../../utils/arr'
 import { icon } from '../../utils/icons'
+import type { MargedNoteData } from '../note/components/notes-utils'
 import type { TextNoteData } from '../note/components/notes/TextNote/types'
+import type { QuizContent } from './constants'
+import { type GeneratedQuiz, QuizManager } from './quiz-manager'
+import { QuizDB, type Quizzes } from './storage'
 import './QuizScreen.css'
 
 export const finish = () => {

@@ -26,7 +26,7 @@
     "@tiptap/pm": "^2.9.1",
     "@tiptap/starter-kit": "^2.9.1",
     "array-move": "^4.0.0",
-    "astro": "4.16.11",
+    "astro": "4.16.13",
     "classnames": "^2.5.1",
     "dedent": "^1.5.3",
     "dexie": "^4.0.9",
@@ -43,7 +43,7 @@
     "vite-imagetools": "^7.0.4"
   },
   "devDependencies": {
-    "@astrojs/solid-js": "^4.4.2",
+    "@astrojs/solid-js": "^5.0.3",
     "@biomejs/biome": "^1.9.4",
     "@types/dompurify": "^3.0.5",
     "@types/fs-extra": "^11.0.4",
