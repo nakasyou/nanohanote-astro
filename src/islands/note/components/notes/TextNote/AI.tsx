@@ -1,10 +1,3 @@
-import {
-  type GenerateContentResponse,
-  type GenerateContentStreamResult,
-  type GoogleGenerativeAI,
-  GoogleGenerativeAIFetchError,
-  GoogleGenerativeAIResponseError,
-} from '@google/generative-ai'
 import markdownIt from 'markdown-it'
 import {
   Match,
@@ -19,14 +12,14 @@ import {
   onMount,
   untrack,
 } from 'solid-js'
-import { getGoogleGenerativeAI } from '../../../../shared/gemini'
+import { generate as generateLLM, generateStream } from '../../../../shared/llm'
 import { Spinner } from '../../utils/Spinner'
 
 const markdownParser = markdownIt()
 
 type Mode = 'text' | 'image'
 type Generate = {
-  generate: () => Promise<GenerateContentStreamResult>
+  generate: () => ReturnType<typeof generateStream>
 }
 
 const renderMarkdown = (markdown: string) =>
@@ -82,16 +75,6 @@ const FROM_TEXT_PLACEHOLDER_CONTENTS: string[] = [
   '英語の曜日についての暗記シート',
 ]
 
-const getGemini = (): GoogleGenerativeAI => {
-  const ai = getGoogleGenerativeAI()
-  if (!ai) {
-    if (confirm('AI 機能が設定されていません。\n設定を開きますか？')) {
-      location.href = '/app/settings#ai'
-    }
-    throw 0
-  }
-  return ai
-}
 export const FromText = (props: {
   setStream(stream: Generate): void
   initPrompt?: string
@@ -161,24 +144,13 @@ export const FromText = (props: {
 
   const generate = async () => {
     setIsPreprocessing(true)
-    const gemini = getGemini()
-    const model = gemini.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-    })
     props.setStream({
       generate: () =>
-        model
-          .startChat({
-            systemInstruction: {
-              role: 'model',
-              parts: [
-                {
-                  text: 'ユーザーの指示に基づき、暗記の手助けになる赤シート用文章を生成しなさい。赤シートで隠すべき単語は、Markdownの太字機能で表現しなさい。隠す必要がない場所には太字は使わないでください。太字の場所はユーザーに見えません。また、単語の一覧を箇条書きにすることはしないでください。',
-                },
-              ],
-            },
-          })
-          .sendMessageStream(getPrompt()),
+        generateStream({
+          systemPrompt:
+            'ユーザーの指示に基づき、暗記の手助けになる赤シート用文章を生成しなさい。赤シートで隠すべき単語は、Markdownの太字機能で表現しなさい。隠す必要がない場所には太字は使わないでください。太字の場所はユーザーに見えません。また、単語の一覧を箇条書きにすることはしないでください。',
+          userPrompt: getPrompt(),
+        }),
     })
     setIsPreprocessing(false)
   }
@@ -235,40 +207,22 @@ export const FromImage = (props: {
       return
     }
 
-    const ai = getGemini()
-    const model = ai.getGenerativeModel({
-      model: 'gemini-1.5-pro',
-    })
     const b64 = await new Promise<string>((resolve) => {
       const reader = new FileReader()
       reader.onloadend = () => resolve((reader.result as string).split(',')[1]!)
       reader.readAsDataURL(file)
     })
 
-    const generate = () =>
-      model
-        .startChat({
-          systemInstruction: {
-            role: 'model',
-            parts: [
-              {
-                text: '画像を抽出し、そっくりそのまま書き出しなさい。省略せずに画像の文字全てを書き出すこと。画像に書いていないことは書かないこと。また、ユーザーからの指示があれば、条件を満たす場所をMarkdownの太字で表現しなさい。',
-              },
-            ],
-          },
-        })
-        .sendMessageStream([
-          {
-            text: '',
-          },
-          {
-            inlineData: {
-              mimeType: file.type,
-              data: b64,
-            },
-          },
-        ])
-    props.setStream({ generate })
+    const generate = async () =>
+      await generateStream({
+        systemPrompt:
+          '画像を抽出し、そっくりそのまま書き出しなさい。省略せずに画像の文字全てを書き出すこと。画像に書いていないことは書かないこと。また、ユーザーからの指示があれば、条件を満たす場所をMarkdownの太字で表現しなさい。',
+        image: { mimeType: file.type, data: b64 },
+        userPrompt: '',
+      })
+    props.setStream({
+      generate,
+    })
     setIsPreprocessing(false)
   }
 
@@ -284,9 +238,12 @@ export const FromImage = (props: {
       >
         <div class="h-[70dvh] max-h-[70dvh] grid grid-rows-2 grid-cols-1 md:grid-rows-1 md:grid-cols-2">
           <div>
-            <div style={{
-              'background-image': `url("${getScanedImageURL()}")`
-            }} class="w-full h-full bg-no-repeat bg-center bg-contain" />
+            <div
+              style={{
+                'background-image': `url("${getScanedImageURL()}")`,
+              }}
+              class="w-full h-full bg-no-repeat bg-center bg-contain"
+            />
           </div>
           <div class="h-full">
             <label class="h-full flex flex-col">
@@ -369,60 +326,21 @@ export const AIDialogCore = (props: {
     if (!streamer) {
       return
     }
-    let stream: GenerateContentStreamResult
+    let stream: Awaited<ReturnType<typeof generateStream>>
     try {
       stream = await streamer.generate()
-    } catch (error) {
-      if (error instanceof GoogleGenerativeAIFetchError) {
-        switch (error.status) {
-          case 429:
-            setGenerateError({ type: 'RATE_LIMIT', isFetchError: true })
-            break
-          case 500:
-          case 503:
-            setGenerateError({
-              type: 'SERVICE_UNAVAILABLE',
-              isFetchError: true,
-            })
-            break
-          default:
-            setGenerateError({ type: 'UNKNOWN', isFetchError: true })
-            break
-        }
-        setIsGenerating(false)
-        return
-      }
+    } catch (e) {
+      console.error(e)
       setIsGenerating(false)
+      setGenerateError({ type: 'UNKNOWN', isFetchError: true })
       return
     }
-    try {
-      for await (const chunk of stream.stream) {
-        setGenerated(`${getGenerated()}${chunk.text()}`)
-        outputRef.scrollTo({
-          behavior: 'smooth',
-          top: 100 + outputRef.scrollHeight,
-        })
-      }
-    } catch (error) {
-      if (error instanceof GoogleGenerativeAIResponseError) {
-        const response = (
-          error as GoogleGenerativeAIResponseError<GenerateContentResponse>
-        ).response
-        if (response?.candidates?.[0]?.finishReason === 'SAFETY') {
-          setGenerateError({
-            type: 'SAFETY',
-            isFetchError: false,
-          })
-          return
-        }
-      }
-      setGenerateError({
-        type: 'UNKNOWN',
-        isFetchError: false,
-      })
-    } finally {
-      setIsGenerating(false)
+    let text = ''
+    for await (const chunk of stream) {
+      text += chunk
+      setGenerated(text)
     }
+    setIsGenerating(false)
   }
   createEffect(() => {
     getStream()

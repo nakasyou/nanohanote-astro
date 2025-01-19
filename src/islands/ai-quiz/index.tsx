@@ -1,10 +1,10 @@
-import { createSignal, onMount, Show } from 'solid-js'
-import type { NoteLoadType } from '../note/note-load-types'
-import { loadNoteFromType } from '../shared/storage'
-import { load } from '../note/utils/file-format'
+import { Show, createSignal, onMount } from 'solid-js'
 import type { MargedNoteData } from '../note/components/notes-utils'
 import { Spinner } from '../note/components/utils/Spinner'
-import { finish, QuizScreen } from './QuizScreen'
+import type { NoteLoadType } from '../note/note-load-types'
+import { load } from '../note/utils/file-format'
+import { loadNoteFromType } from '../shared/storage'
+import { QuizScreen, finish } from './QuizScreen'
 
 export const Navbar = () => {}
 

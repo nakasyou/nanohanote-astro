@@ -1,38 +1,31 @@
 import { parse, safeParse } from 'valibot'
+import { shuffle } from '../../utils/arr'
+import type { MargedNoteData } from '../note/components/notes-utils'
+import type { TextNoteData } from '../note/components/notes/TextNote/types'
 import { getGoogleGenerativeAI } from '../shared/gemini'
+import { sha256 } from '../shared/hash'
+import { generate } from '../shared/llm'
 import {
   CONTENT_SCHEMA,
   PROMPT_TO_GENERATE_SELECT_QUIZ,
   type QuizContent,
 } from './constants'
-import type { MargedNoteData } from '../note/components/notes-utils'
-import type { TextNoteData } from '../note/components/notes/TextNote/types'
 import type { QuizDB, Quizzes } from './storage'
-import { shuffle } from '../../utils/arr'
-import { sha256 } from '../shared/hash'
-
 const generateQuizzesFromAI = async (text: string): Promise<QuizContent[]> => {
   const gemini = getGoogleGenerativeAI()
   if (!gemini) {
     throw new Error('Gemini is null.')
   }
-  const response = await gemini
-    .getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      generationConfig: {
-        responseMimeType: 'application/json',
-      },
-      systemInstruction: {
-        role: 'system',
-        parts: [{ text: PROMPT_TO_GENERATE_SELECT_QUIZ }],
-      },
-    })
-    .startChat()
-    .sendMessage(text)
+
+  const response = await generate({
+    systemPrompt: PROMPT_TO_GENERATE_SELECT_QUIZ,
+    userPrompt: text,
+    jsonMode: true,
+  })
 
   let json: unknown
   try {
-    json = JSON.parse(response.response.text())
+    json = JSON.parse(response)
   } catch {
     return []
   }

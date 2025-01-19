@@ -7,22 +7,5 @@ import App from '../../layouts/App.astro'
 <App title="Notes | Nanoha" description="Settings | Nanoha" useViewTransitions={false} bodyClass="text-on-background bg-background">
   <div class="px-5 py-2 h-full overflow-auto">
     <div class="text-3xl">Settings</div>
-    <hr class="my-1" />
-    <div>
-      <h2 class="text-xl" id="ai">AI</h2>
-      <div class="p-1">
-        <div class="text-lg">Gemini API Token</div>
-        <div>AI機能を使うのに必須です</div>
-        <GeminiApiToken />
-      </div>
-    </div>
-    <div>
-      <h2 class="text-xl" id="ai">Info</h2>
-      <div class="p-1 w-full overflow-x-scroll">
-        <div>Nanoha v{packageJson.version} Canary</div>
-        <div>Branch: { gitBranch }</div>
-        <div>Git hash: {commitHash}</div>
-      </div>
-    </div>
   </div>
 </App>

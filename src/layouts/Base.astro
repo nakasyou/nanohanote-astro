@@ -50,10 +50,7 @@ nomalizedUrl.protocol = 'https://'
         </script>
       </>
     }
-    {
-      Astro.props.noIndex && <meta name="robots" content="noindex" />
-    }
-
+    <meta name="robots" content="noindex" />
     {
       // ViewTransitions
       Astro.props.useViewTransitions && <ViewTransitions />
